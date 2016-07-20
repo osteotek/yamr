@@ -1,0 +1,3 @@
+[submodule "yadfs"]
+	path = yadfs
+	url = https://github.com/osteotek/yadfs.git
