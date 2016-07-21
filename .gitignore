@@ -10,7 +10,6 @@ __pycache__/
 .idea/
 
 .vscode
-name_server.yml
 
 # Distribution / packaging
 .Python
