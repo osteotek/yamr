@@ -14,3 +14,11 @@ class Status:
             return "Internal error"
         else:
             return "Item already exists"
+
+
+class MapStatus:
+    accepted = 201  # task has been started
+    loaded_chunk = 202  # data chunk has been loaded
+
+    error = 500
+    already_exists = 501 # task alread exists
