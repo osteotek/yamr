@@ -1,15 +1,25 @@
 import sys
 import os
 import uuid
-from src.enums import MapStatus
+import _thread
+from src.enums import MapStatus, Status
 from src.fake_fs import FakeFS
+import time
 
 BASE_DIR = "/etc/yamr/"
 
 
 class MapTask:
-    def __init__(self):
+    def __init__(self, rds_count, chunk_path, map_script):
         self.status = MapStatus.accepted
+        self.rds_count = rds_count
+        self.chunk_path = chunk_path
+        self.script_path = map_script
+
+    @property
+    def in_progress(self):
+        return self.status != MapStatus.chunk_not_found and self.status != MapStatus.error \
+               and self.status != MapStatus.finished
 
 
 class Mapper:
@@ -30,9 +40,28 @@ class Mapper:
         if task_id in self.tasks and not restart_task:
             return {'status': MapStatus.already_exists}
 
-        self.tasks[task_id] = MapTask()
+        self.tasks[task_id] = MapTask(reducers_count, chunk_path, map_script)
+        _thread.start_new_thread(self.process_task, (task_id,))
 
         return {'status': MapStatus.accepted}
+
+
+    def process_task(self, task_id):
+        task = self.tasks[task_id]
+        r = self.fs.get_chunk(task.chunk_path)
+        if r['status'] == Status.not_found:
+            task.status = MapStatus.chunk_not_found
+            return
+
+        data = r['data']
+        task.status = MapStatus.chunk_loaded
+
+        task.status = MapStatus.finished
+
+
+    def get_status(self, task_id):
+        t = self.tasks[task_id]
+        return {'status': t.status, 'in_progress': t.in_progress}
 
     # read mapped data for specific region
     # task_id - unique task_id
@@ -40,14 +69,20 @@ class Mapper:
     def read_mapped_data(self, task_id, region):
         pass
 
-
 if __name__ == '__main__':
     name = sys.argv[1]
     port = int(sys.argv[2])
 
     fs = FakeFS()  # use fake fs for local development
-    mapper = Mapper(fs, name)
+    fs.save("ho ho ho", "/my_folder/chunk")
 
+    mapper = Mapper(fs, name)
     task_id = uuid.uuid4()
     r = mapper.map(task_id, 4, "/my_folder/chunk", "some")
-    print(r)
+
+    while mapper.get_status(task_id)['in_progress']:
+        pass
+
+    print("data loaded")
+
+

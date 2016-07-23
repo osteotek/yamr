@@ -18,7 +18,11 @@ class Status:
 
 class MapStatus:
     accepted = 201  # task has been started
-    loaded_chunk = 202  # data chunk has been loaded
+    chunk_loaded = 202  # data chunk has been loaded
+
+    chunk_not_found = 404
 
     error = 500
     already_exists = 501 # task alread exists
+
+    finished = 600

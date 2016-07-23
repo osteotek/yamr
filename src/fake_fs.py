@@ -15,7 +15,7 @@ class FakeFS:
         with open(full_path, 'r') as f:
             data = f.read()
 
-        return data
+        return {'status': Status.ok, 'data': data }
 
     def save(self, data, path):
         full_path = self.base_dir + path
