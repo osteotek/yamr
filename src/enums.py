@@ -26,3 +26,10 @@ class MapStatus:
     already_exists = 501 # task alread exists
 
     finished = 600
+
+class TaskStatus:
+    accepted = 200
+    mapping = 210
+    mapping_done = 220
+    reducing = 230
+    task_done = 240
