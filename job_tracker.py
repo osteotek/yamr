@@ -6,6 +6,7 @@ import yaml
 import _thread
 import socket
 import uuid
+import time
 from datetime import datetime
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.client import ServerProxy
@@ -39,13 +40,40 @@ class JobTracker:
         self.dump_path = "./job_tracker.yml"
         self.workers = {}
         self.tasks = {}
+        self.worker_timeout = 2
 
     # start job tracker
     def start(self):
         self._load_dump()
+        _thread.start_new_thread(self.worker_watcher, ())
 
     def _load_dump(self):
         pass
+
+    # get heartbeat from chunk server
+    def heartbeat(self, w_addr):
+        if w_addr not in self.workers:
+            print('register CS ' + w_addr)
+
+        self.workers[w_addr] = datetime.now()
+        return {'status': Status.ok}
+
+    def _is_alive_worker(self, w_addr):
+        if w_addr not in self.workers:
+            return False
+
+        last_hb = self.workers[w_addr]
+        now = datetime.now()
+        diff = (now - last_hb).total_seconds()
+        return diff <= self.worker_timeout
+
+    def worker_watcher(self):
+        while 1:
+            for w_name in list(self.workers):
+                if not self._is_alive_worker(w_name):
+                    print('Worker ', w_name, ' detected as not alive')
+                    self.workers.pop(w_name)
+        time.sleep(1)
 
     def create_task(self, input, map_script, reduce_script):
         input_info = self.dfs.path_status(input)
