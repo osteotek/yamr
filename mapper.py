@@ -2,11 +2,11 @@ import _thread
 import sys
 import uuid
 from map_libs.base_mapper import WordCountMapper
+from hash_partitioner import HashPartitioner
 
 from fake_fs import FakeFS
 
 from enums import MapStatus, Status
-
 BASE_DIR = "/etc/yamr/"
 
 
@@ -30,6 +30,7 @@ class Mapper:
         self.fs = fs  # client to dfs
         self.work_dir = BASE_DIR + name
         self.tasks = {}
+        self.hasher = HashPartitioner()
 
     def log(self, task_id, msg):
         print("Task", task_id, ":", msg)
@@ -65,8 +66,8 @@ class Mapper:
 
         self.log(task_id, "chunk " + task.chunk_path + " has been loaded")
         task.status = MapStatus.chunk_loaded
-
-        self.exec_mapping(task, r['data'])
+        tuples = self.exec_mapping(task, r['data'])
+        regions = self.partition(task.rds_count, tuples)
 
         task.status = MapStatus.finished
 
@@ -76,6 +77,19 @@ class Mapper:
         mapper = WordCountMapper()
         tuples = mapper.run_map(data)
         self.log(task.task_id, "mapping function completed, tuples count - " + str(len(tuples)))
+        task.status = MapStatus.map_applied
+        return
+
+    def partition(self, rds_count, tuples):
+        regions = {}
+        for i in range(1, rds_count + 1):
+            regions[i] = []
+
+        for t in tuples:
+            r = self.hasher.get_partition(t[0], t[1], rds_count)
+            regions[r+1].append(t)
+
+        return regions
 
     def get_status(self, task_id):
         t = self.tasks[task_id]

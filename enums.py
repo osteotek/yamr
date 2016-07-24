@@ -19,6 +19,7 @@ class Status:
 class MapStatus:
     accepted = 201  # task has been started
     chunk_loaded = 202  # data chunk has been loaded
+    map_applied = 210 # map function was aplied to the input record
 
     chunk_not_found = 404
 
