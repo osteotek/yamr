@@ -11,7 +11,8 @@ BASE_DIR = "/etc/yamr/"
 
 
 class MapTask:
-    def __init__(self, rds_count, chunk_path, map_script):
+    def __init__(self, task_id, rds_count, chunk_path, map_script):
+        self.task_id = task_id
         self.status = MapStatus.accepted
         self.rds_count = rds_count
         self.chunk_path = chunk_path
@@ -30,40 +31,51 @@ class Mapper:
         self.work_dir = BASE_DIR + name
         self.tasks = {}
 
+    def log(self, task_id, msg):
+        print("Task", task_id, ":", msg)
+
     # map data by applying some data function
     # task_id - unique task_id
     # reducers_count - number of reducers for the task
     # chunk_path - DFS path to the chunk file to map
     # map_script - DFS path to script of map function
     # restart_task - if True then restart map task even its already completed or executing now
-    def map(self, task_id, reducers_count, chunk_path, map_script, restart_task=False):
+    def map(self, task_id, rds_count, chunk_path, map_script, restart_task=False):
+        print("Map request - task_id:", task_id, "rdc_count:", rds_count, "chunk_path:", chunk_path,
+              "map_script:", map_script, "restart_task:", restart_task)
 
         if task_id in self.tasks and not restart_task:
+            self.log(task_id, "Task with the same id is already exists.")
             return {'status': MapStatus.already_exists}
 
-        self.tasks[task_id] = MapTask(reducers_count, chunk_path, map_script)
+        self.tasks[task_id] = MapTask(task_id, rds_count, chunk_path, map_script)
         _thread.start_new_thread(self.process_task, (task_id,))
 
         return {'status': MapStatus.accepted}
 
-
     def process_task(self, task_id):
         task = self.tasks[task_id]
+        self.log(task_id, "start task")
+        self.log(task_id, "trying to load chunk " + task.chunk_path)
+
         r = self.fs.get_chunk(task.chunk_path)
         if r['status'] == Status.not_found:
             task.status = MapStatus.chunk_not_found
             return
 
-        data = r['data']
+        self.log(task_id, "chunk " + task.chunk_path + " has been loaded")
         task.status = MapStatus.chunk_loaded
-        self.exec_mapping(task, data)
 
-        #task.status = MapStatus.finished
+        self.exec_mapping(task, r['data'])
+
+        task.status = MapStatus.finished
 
     def exec_mapping(self, task, data):
+        self.log(task.task_id, "start mapping execution")
         # to-do replace this for script invocation
         mapper = WordCountMapper()
-        tuples = mapper.run_map()
+        tuples = mapper.run_map(data)
+        self.log(task.task_id, "mapping function completed, tuples count - " + str(len(tuples)))
 
     def get_status(self, task_id):
         t = self.tasks[task_id]
@@ -86,9 +98,9 @@ if __name__ == '__main__':
     task_id = uuid.uuid4()
     r = mapper.map(task_id, 4, "/my_folder/chunk", "some")
 
-    while mapper.get_status(task_id)['status'] != MapStatus.chunk_loaded:
+    while mapper.get_status(task_id)['status'] != MapStatus.finished:
         pass
 
-    print("data loaded")
+    print("data mapped")
 
 
