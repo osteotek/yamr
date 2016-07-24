@@ -23,7 +23,7 @@ class Task:
         self.map_script = map_script
         self.reduce_script = reduce_script
         self.chunks = []
-        for chunk_path, _ in chunks:
+        for chunk_path, _ in chunks.items():
             self.chunks.append({
                 'chunk_path': chunk_path,
                 'mapper': '',
@@ -52,6 +52,7 @@ class JobTracker:
         task_id = uuid.uuid4()
         self.tasks[task_id] = Task(input, map_script, reduce_script, input_info['chunks'])
         self._start_task(task_id)
+        return "ok"
     
     def _start_task(self, task_id):
         task = self.tasks[task_id]
