@@ -23,9 +23,10 @@ class MapStatus:
     chunk_not_found = 404
 
     error = 500
-    already_exists = 501 # task alread exists
+    already_exists = 501 # task already exists
 
     finished = 600
+
 
 class TaskStatus:
     accepted = 200
