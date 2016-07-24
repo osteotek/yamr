@@ -1,5 +1,5 @@
 import unittest
-from lib.base_mapper import WordCountMapper
+from map_libs.base_mapper import WordCountMapper
 
 
 class TestMappers(unittest.TestCase):

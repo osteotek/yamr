@@ -1,6 +1,7 @@
 import _thread
 import sys
 import uuid
+from map_libs.base_mapper import WordCountMapper
 
 from fake_fs import FakeFS
 
@@ -55,11 +56,14 @@ class Mapper:
 
         data = r['data']
         task.status = MapStatus.chunk_loaded
-
-
+        self.exec_mapping(task, data)
 
         #task.status = MapStatus.finished
 
+    def exec_mapping(self, task, data):
+        # to-do replace this for script invocation
+        mapper = WordCountMapper()
+        tuples = mapper.run_map()
 
     def get_status(self, task_id):
         t = self.tasks[task_id]
