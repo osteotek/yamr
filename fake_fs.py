@@ -1,5 +1,6 @@
 import os
-from src.enums import Status
+
+from enums import Status
 
 
 class FakeFS:

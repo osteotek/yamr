@@ -1,10 +1,10 @@
-import sys
-import os
-import uuid
 import _thread
-from src.enums import MapStatus, Status
-from src.fake_fs import FakeFS
-import time
+import sys
+import uuid
+
+from fake_fs import FakeFS
+
+from enums import MapStatus, Status
 
 BASE_DIR = "/etc/yamr/"
 
