@@ -10,13 +10,13 @@ class FakeFS:
     def get_chunk(self, path):
         full_path = self.base_dir + path
         if not os.path.isfile(full_path):
-            return {'status': Status.not_found }
+            return {'status': Status.not_found}
 
         data = None
         with open(full_path, 'r') as f:
             data = f.read()
 
-        return {'status': Status.ok, 'data': data }
+        return {'status': Status.ok, 'data': data}
 
     def save(self, data, path):
         full_path = self.base_dir + path
