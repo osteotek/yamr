@@ -56,7 +56,9 @@ class Mapper:
         data = r['data']
         task.status = MapStatus.chunk_loaded
 
-        task.status = MapStatus.finished
+
+
+        #task.status = MapStatus.finished
 
 
     def get_status(self, task_id):
@@ -80,7 +82,7 @@ if __name__ == '__main__':
     task_id = uuid.uuid4()
     r = mapper.map(task_id, 4, "/my_folder/chunk", "some")
 
-    while mapper.get_status(task_id)['in_progress']:
+    while mapper.get_status(task_id)['status'] != MapStatus.chunk_loaded:
         pass
 
     print("data loaded")
