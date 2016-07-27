@@ -168,6 +168,9 @@ class Mapper:
             self.err(task_id, "Failed to send result for chunk " + chunk_path, e)
 
     def get_status(self, task_id, chunk_path):
+        if self.tasks not in self.tasks and chunk_path not in self.tasks[task_id]:
+            return {'status': MapStatus.chunk_not_found, "in_progress": False}
+
         t = self.tasks[task_id][chunk_path]
         return {'status': t.status, 'in_progress': t.in_progress}
 
