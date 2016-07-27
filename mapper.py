@@ -78,7 +78,7 @@ class Mapper:
         tuples = mapper.run_map(data)
         self.log(task.task_id, "mapping function completed, tuples count - " + str(len(tuples)))
         task.status = MapStatus.map_applied
-        return
+        return tuples
 
     def partition(self, rds_count, tuples):
         regions = {}
@@ -88,6 +88,9 @@ class Mapper:
         for t in tuples:
             r = self.hasher.get_partition(t[0], t[1], rds_count)
             regions[r+1].append(t)
+
+        for k,v in regions.items():
+            v.sort(key=lambda tup: tup[0])
 
         return regions
 

@@ -14,11 +14,11 @@ class TestPartition(unittest.TestCase):
 
     def test_partition_for_two(self):
         m = Mapper(None, "map")
-        tuples = [('aa', 1), ('bb', 1), ('cc', 1), ('mm', 1)]
+        tuples = [('mm', 1), ('cc', 1), ('bb', 1), ('aa', 1), ('mm', 1)]
         r = m.partition(2, tuples)
 
         e = {1: [('bb', 1)],
-             2: [('aa', 1), ('cc', 1), ('mm', 1)]
+             2: [('aa', 1), ('cc', 1), ('mm', 1), ('mm', 1)]
              }
 
         self.assertDictEqual(e, r)
@@ -30,8 +30,7 @@ class TestPartition(unittest.TestCase):
 
         e = {1: [('innopolis', 1)],
              2: [('moscow', 1)],
-             3: [('nlll', 1), ('kazan', 1)]
-
+             3: [('kazan', 1), ('nlll', 1)]
              }
 
         self.assertDictEqual(e, r)
