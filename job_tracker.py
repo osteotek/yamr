@@ -18,6 +18,14 @@ from yadfs.client.client import Client
 from enums import Status, TaskStatus, MapStatus
 
 
+class Chunk:
+    def __init__(self, path, status, mapper):
+        self.path = path
+        self.status = status
+        self.mapper = mapper
+        self.map_path = ""
+
+
 class Task:
     def __init__(self, input, map_script, reduce_script, chunks):
         self.input = input
@@ -25,16 +33,12 @@ class Task:
         self.reduce_script = reduce_script
         self.chunks = []
         for chunk_path, _ in chunks.items():
-            self.chunks.append({
-                'chunk_path': chunk_path,
-                'mapper': '',
-                'status': MapStatus.accepted
-            })
+            self.chunks.append(Chunk(chunk_path, MapStatus.accepted, ""))
         self.status = TaskStatus.accepted
 
     def get_chunk(self, chunk_path):
         for chunk in self.chunks:
-            if chunk_path == chunk["chunk_path"]:
+            if chunk_path == chunk.path:
                 return chunk
 
 
@@ -94,9 +98,9 @@ class JobTracker:
             if wn > len(self.workers):
                 wn = 0
             mapper = ServerProxy(self.workers.keys()[wn])
-            mapper.map(task_id, len(self.workers), chunk['chunk_path'], task.map_script)
-            chunk['mapper'] = self.workers.keys()[wn]
-            chunk['status'] = MapStatus.chunk_loaded
+            mapper.map(task_id, len(self.workers), chunk.path, task.map_script)
+            chunk.mapper = self.workers.keys()[wn]
+            chunk.status = MapStatus.chunk_loaded
             wn = wn + 1
         
         task.status = TaskStatus.mapping
@@ -109,7 +113,7 @@ class JobTracker:
     def mapping_done(self, mapper_addr, task_id, chunk_path, map_path):
         task = self.tasks[task_id]
         chunk = task.get_chunk(chunk_path)
-        chunk["status"] = MapStatus.map_applied
+        chunk.status = MapStatus.map_applied
 
         map_completed = self._check_task_status(task_id)
 
@@ -120,7 +124,7 @@ class JobTracker:
     def _check_task_status(self, task_id):
         task = self.tasks[task_id]
         for chunk in task.chunks:
-            if chunk["status"] != MapStatus.map_applied:
+            if chunk.status != MapStatus.map_applied:
                 return False
 
         return True
