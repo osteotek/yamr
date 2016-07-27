@@ -11,6 +11,7 @@ from fake_fs import FakeFS
 from enums import MapStatus, Status
 BASE_DIR = "/etc/yamr/"
 
+# unique map task for one chunk
 class MapTask:
     def __init__(self, task_id, rds_count, chunk_path, map_script):
         self.task_id = task_id
@@ -46,17 +47,20 @@ class Mapper:
         print("Map request - task_id:", task_id, "rdc_count:", rds_count, "chunk_path:", chunk_path,
               "map_script:", map_script, "restart_task:", restart_task)
 
-        if task_id in self.tasks and not restart_task:
+        if task_id in self.tasks and chunk_path in self.tasks[task_id] and not restart_task:
             self.log(task_id, "Task with the same id is already exists.")
             return {'status': MapStatus.already_exists}
 
-        self.tasks[task_id] = MapTask(task_id, rds_count, chunk_path, map_script)
-        _thread.start_new_thread(self.process_task, (task_id,))
+        if task_id not in self.tasks:
+            self.tasks[task_id] = {}
+
+        self.tasks[task_id][chunk_path] = MapTask(task_id, rds_count, chunk_path, map_script)
+        _thread.start_new_thread(self.process_task, (self.tasks[task_id][chunk_path],))
 
         return {'status': MapStatus.accepted}
 
-    def process_task(self, task_id):
-        task = self.tasks[task_id]
+    def process_task(self, task):
+        task_id = task.task_id
         self.log(task_id, "start task")
         self.log(task_id, "trying to load chunk " + task.chunk_path)
 
@@ -111,8 +115,8 @@ class Mapper:
             with open(path, 'w') as file:
                 file.write(json.dumps(v))
 
-    def get_status(self, task_id):
-        t = self.tasks[task_id]
+    def get_status(self, task_id, chunk_path):
+        t = self.tasks[task_id][chunk_path]
         return {'status': t.status, 'in_progress': t.in_progress}
 
     # read mapped data for specific region
@@ -132,7 +136,7 @@ if __name__ == '__main__':
     task_id = uuid.uuid4()
     r = mapper.map(task_id, 4, "/my_folder/chunk", "some")
 
-    while mapper.get_status(task_id)['status'] != MapStatus.finished:
+    while mapper.get_status(task_id, "/my_folder/chunk")['status'] != MapStatus.finished:
         pass
 
     print("data mapped")
