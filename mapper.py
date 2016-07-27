@@ -79,23 +79,15 @@ class Mapper:
 
         self.log(task_id, "chunk " + task.chunk_path + " has been loaded")
         task.status = MapStatus.chunk_loaded
-        st, mapper = self.load_mapping_script(task)
+        mapper = self.load_mapping_script(task)
 
-        if st == Status.not_found:
-            task.status = MapStatus.map_script_not_found
-        elif st == Status.error:
-            task.status = MapStatus.map_script_error
-        else:
-            st, tuples = self.exec_mapping(mapper, task, r['data'])
-            if st == Status.error:
-                task.status = MapStatus.exec_map_error
-            else:
+        if task.status == MapStatus.mapper_loaded:
+            tuples = self.exec_mapping(mapper, task, r['data'])
+            if task.status == MapStatus.map_applied:
                 regions = self.partition(task.rds_count, tuples)
-                st = self.save_partitions(task_id, task.chunk_path, regions)
+                self.save_partitions(task, task.chunk_path, regions)
 
-                if st == Status.error:
-                    task.status = MapStatus.save_partitions_err
-                else:
+                if task.status == MapStatus.partitions_saved:
                     task.status = MapStatus.partitions_saved
                     self.send_mapping_done(task_id, task.chunk_path)
                     task.status = MapStatus.finished
@@ -105,15 +97,18 @@ class Mapper:
             l_path = self.work_dir + "/" + str(task.task_id) + "/map.py"
             r = self.fs.download_to(task.script_path, l_path)
             if r['status'] == Status.not_found:
-                return Status.not_found, None
+                task.status = MapStatus.map_script_not_found
+                return None
 
             spec = importlib.util.spec_from_file_location("map"+str(task.task_id), l_path)
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
-            return Status.ok, mod.Mapper()
+            task.status = MapStatus.mapper_loaded
+            return mod.Mapper()
         except Exception as e:
             self.err(task.task_id, "error during script execution", e)
-            return Status.error, None
+            task.status = MapStatus.map_script_loading_error
+            return None
 
     def exec_mapping(self, mapper, task, data):
         try:
@@ -121,10 +116,11 @@ class Mapper:
             tuples = mapper.run_map(data)
             self.log(task.task_id, "mapping function completed, tuples count - " + str(len(tuples)))
             task.status = MapStatus.map_applied
-            return Status. ok, tuples
+            return tuples
         except Exception as e:
             self.err(task.task_id, "Error during executing map script for chunk " + task.chunk_path, e)
-            return Status.error, []
+            task.status = task.status = MapStatus.exec_map_error
+            return []
 
     def partition(self, rds_count, tuples):
         regions = {}
@@ -147,10 +143,10 @@ class Mapper:
     # task_id - unique task_id
     # chunk_path - path of the processed_chunk
     # dictionary of mapped data which is sorted to regions
-    def save_partitions(self, task_id, chunk_path, regions):
+    def save_partitions(self, task, chunk_path, regions):
         try:
             task_dir = self._get_chunk_dir_path(task_id, chunk_path)
-            self.log(task_id, "save map result of " + chunk_path + " to " + task_dir)
+            self.log(task.task_id, "save map result of " + chunk_path + " to " + task_dir)
             if not os.path.exists(task_dir):
                 os.makedirs(task_dir)
 
@@ -158,11 +154,11 @@ class Mapper:
                 path = task_dir + "/" + str(k)
                 with open(path, 'w') as file:
                     file.write(json.dumps(v))
-            return Status.ok
+            task.status = MapStatus.partitions_saved
 
         except Exception as e:
             self.log(task_id, "Error during saving mapped partitions for chunk " + chunk_path, e)
-            return Status.error
+            task.status = MapStatus.save_partitions_err
 
     def send_mapping_done(self, task_id, chunk_path):
         try:

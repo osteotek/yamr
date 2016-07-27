@@ -19,6 +19,7 @@ class Status:
 class MapStatus:
     accepted = 201  # task has been started
     chunk_loaded = 202  # data chunk has been loaded
+    mapper_loaded = 205
     map_applied = 210 # map function was aplied to the input record
     partitions_saved = 220
 
@@ -26,10 +27,11 @@ class MapStatus:
 
     error = 500
     map_script_not_found = 504
-    map_script_error = 505
+    map_script_loading_error = 505
     exec_map_error = 510
     save_partitions_err = 520
     already_exists = 501  # task already exists
+
 
 
 
