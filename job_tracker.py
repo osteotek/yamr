@@ -109,8 +109,10 @@ class JobTracker:
     # mapper_addr: address of a mapper
     # task_id: id of task completed map
     # chunk_path: path of a chunk being mapped
-    # map_path: path to the local mapped data on the mapper node
-    def mapping_done(self, mapper_addr, task_id, chunk_path, map_path):
+    def mapping_done(self, mapper_addr, task_id, chunk_path):
+        if task_id not in self.tasks:
+            return {"status": Status.not_found}
+
         task = self.tasks[task_id]
         chunk = task.get_chunk(chunk_path)
         chunk.status = MapStatus.map_applied
@@ -150,7 +152,7 @@ if __name__ == '__main__':
     jt = JobTracker(dump_on=True)
     jt.start()
 
-    server = SimpleXMLRPCServer((host, port), logRequests=False, allow_none=True)
+    server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
     server.register_introspection_functions()
     server.register_instance(jt)
     server.serve_forever()

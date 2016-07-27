@@ -20,11 +20,14 @@ class MapStatus:
     accepted = 201  # task has been started
     chunk_loaded = 202  # data chunk has been loaded
     map_applied = 210 # map function was aplied to the input record
+    partitions_saved = 220
 
     chunk_not_found = 404
 
     error = 500
     already_exists = 501 # task already exists
+
+
 
     finished = 600
 

@@ -1,2 +1,4 @@
 unittest2py3k
 click
+configparser
+pyyaml
