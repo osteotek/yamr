@@ -100,12 +100,15 @@ class Mapper:
 
         return regions
 
+    def _get_chunk_dir_path(self, task_id, chunk_path):
+        return  self.work_dir + "/" + str(task_id) + chunk_path
+
     # save file in path /base_dir/task_id/chunk_path/1 where 1 is a region number
     # task_id - unique task_id
     # chunk_path - path of the processed_chunk
     # dictionary of mapped data which is sorted to regions
     def save_partitions(self, task_id, chunk_path, regions):
-        task_dir = self.work_dir + "/" + str(task_id) + chunk_path
+        task_dir = self._get_chunk_dir_path(task_id, chunk_path)
         self.log(task_id, "save map result of " + chunk_path + " to " + task_dir)
         if not os.path.exists(task_dir):
             os.makedirs(task_dir)
@@ -121,24 +124,53 @@ class Mapper:
 
     # read mapped data for specific region
     # task_id - unique task_id
-    # region - is a region which is specified for the current reducer
-    def read_mapped_data(self, task_id, region):
-        pass
+    # region - is a integer region which is specified for the current reducer
+    # Return dict {status: Status.ok, data: list of tuples}
+    # if file not exists then status = Status.not_found
+    # if file is empty then returns ok and empty list
+    def read_mapped_data(self, task_id, region_number):
+        self.log(task_id, "request to load region " + str(region_number))
+
+        if task_id not in self.tasks:
+            return {'status': Status.not_found, 'data': []}
+
+        result = []
+
+        for chunk_path in self.tasks[task_id]:
+            path = self._get_chunk_dir_path(task_id, chunk_path)
+            path += "/" + str(region_number)
+
+            if not os.path.isfile(path):
+                self.log(task_id, "chunk " + path + " is not found in mapped data")
+                continue
+
+            with open(path, "r") as f:
+                list = json.loads(f.read())
+
+            result.extend([(x[0], x[1]) for x in list])
+
+        self.log(task_id, "Send to reducer data for region " + str(region_number))
+        return result
 
 if __name__ == '__main__':
     name = sys.argv[1]
     port = int(sys.argv[2])
+    rds_count = 5
 
+    chunk = "/my_folder/chunk"
     fs = FakeFS()  # use fake fs for local development
-    fs.save("ho ho ho", "/my_folder/chunk")
+    fs.save("aa mm adas aa bb huy what the the i don bmm", chunk)
 
     mapper = Mapper(fs, name)
     task_id = uuid.uuid4()
-    r = mapper.map(task_id, 4, "/my_folder/chunk", "some")
+    r = mapper.map(task_id, rds_count, chunk, "some")
 
-    while mapper.get_status(task_id, "/my_folder/chunk")['status'] != MapStatus.finished:
+    while mapper.get_status(task_id, chunk)['status'] != MapStatus.finished:
         pass
 
-    print("data mapped")
+    i = 1
+    while i <= 4:
+        print(i, "region:", mapper.read_mapped_data(task_id, i))
+        i += 1
 
 
