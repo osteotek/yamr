@@ -25,7 +25,11 @@ class MapStatus:
     chunk_not_found = 404
 
     error = 500
-    already_exists = 501 # task already exists
+    map_script_not_found = 504
+    map_script_error = 505
+    exec_map_error = 510
+    save_partitions_err = 520
+    already_exists = 501  # task already exists
 
 
 
