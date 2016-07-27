@@ -1,4 +1,4 @@
-class BaseMapper:
+class Mapper:
     def __init__(self):
         self.tuples = []
 
@@ -8,14 +8,6 @@ class BaseMapper:
         return self.tuples
 
     def map(self, data):
-        pass
-
-    def emit(self, key, value):
-        self.tuples.append((key, value))
-
-
-class WordCountMapper(BaseMapper):
-    def map(self, data):
         if data is None:
             return
 
@@ -24,3 +16,6 @@ class WordCountMapper(BaseMapper):
             # exclude empty strings from keys
             if len(word) > 0:
                 self.emit(word, 1)
+
+    def emit(self, key, value):
+        self.tuples.append((key, value))

@@ -18,6 +18,21 @@ class FakeFS:
 
         return {'status': Status.ok, 'data': data}
 
+    def download_to(self, v_path, l_path):
+        full_path = self.base_dir + v_path
+        if not os.path.isfile(full_path):
+            return {'status': Status.not_found}
+
+        data = None
+        with open(full_path, 'r') as f:
+            data = f.read()
+
+        os.makedirs(os.path.dirname(l_path), exist_ok=True)
+        with open(l_path, "w") as f:
+            f.write(data)
+
+        return {'status': Status.ok}
+
     def save(self, data, path):
         full_path = self.base_dir + path
 

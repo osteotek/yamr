@@ -4,7 +4,7 @@ import uuid
 import os
 import json
 import cfg
-from map_libs.base_mapper import WordCountMapper
+import importlib.util
 from hash_partitioner import HashPartitioner
 from xmlrpc.client import ServerProxy
 
@@ -79,7 +79,9 @@ class Mapper:
 
         self.log(task_id, "chunk " + task.chunk_path + " has been loaded")
         task.status = MapStatus.chunk_loaded
-        tuples = self.exec_mapping(task, r['data'])
+        mapper = self.load_mapping_script(task)
+
+        tuples = self.exec_mapping(mapper, task, r['data'])
         regions = self.partition(task.rds_count, tuples)
         self.save_partitions(task_id, task.chunk_path, regions)
         task.status = MapStatus.partitions_saved
@@ -87,10 +89,17 @@ class Mapper:
 
         task.status = MapStatus.finished
 
-    def exec_mapping(self, task, data):
+    def load_mapping_script(self, task):
+        l_path = self.work_dir + "/" + str(task.task_id) + "/map.py"
+        self.fs.download_to(task.script_path, l_path)
+
+        spec = importlib.util.spec_from_file_location("map"+str(task.task_id), l_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.Mapper()
+
+    def exec_mapping(self, mapper, task, data):
         self.log(task.task_id, "start mapping execution")
-        # to-do replace this for script invocation
-        mapper = WordCountMapper()
         tuples = mapper.run_map(data)
         self.log(task.task_id, "mapping function completed, tuples count - " + str(len(tuples)))
         task.status = MapStatus.map_applied
@@ -177,18 +186,23 @@ if __name__ == '__main__':
     name = sys.argv[1]
     port = int(sys.argv[2])
     cfg_path = sys.argv[3]
+    script_path = sys.argv[4]
     rds_count = 5
 
     chunk = "/my_folder/chunk"
     fs = FakeFS()  # use fake fs for local development
     fs.save("aa mm adas aa bb huy what the the i don bmm", chunk)
 
+    with open(script_path, "r") as file:
+        data = file.read()
+        fs.save(data, "/scripts/word_count.py")
+
     opts = cfg.load(cfg_path)
     print("JT address", opts["JobTracker"]["address"])
 
     mapper = Mapper(opts, fs, name, "http://localhost:" + str(port))
     task_id = uuid.uuid4()
-    r = mapper.map(task_id, rds_count, chunk, "some")
+    r = mapper.map(task_id, rds_count, chunk, "/scripts/word_count.py")
 
     while mapper.get_status(task_id, chunk)['status'] != MapStatus.finished:
         pass
