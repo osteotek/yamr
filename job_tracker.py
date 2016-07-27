@@ -32,6 +32,11 @@ class Task:
             })
         self.status = TaskStatus.accepted
 
+    def get_chunk(self, chunk_path):
+        for chunk in self.chunks:
+            if chunk_path == chunk["chunk_path"]:
+                return chunk
+
 
 class JobTracker:
     def __init__(self, dump_on=True):
@@ -50,12 +55,12 @@ class JobTracker:
     def _load_dump(self):
         pass
 
-    # get heartbeat from chunk server
-    def heartbeat(self, w_addr):
-        if w_addr not in self.workers:
-            print('register CS ' + w_addr)
+    # get heartbeat from worker
+    def heartbeat(self, worker_addr):
+        if worker_addr not in self.workers:
+            print('register worker ' + worker_addr)
 
-        self.workers[w_addr] = datetime.now()
+        self.workers[worker_addr] = datetime.now()
         return {'status': Status.ok}
 
     def _is_alive_worker(self, w_addr):
@@ -96,19 +101,38 @@ class JobTracker:
         
         task.status = TaskStatus.mapping
 
-    def mapping_done(self):
-        pass
+    # RPC call from mapped when a task is done:
+    # mapper_addr: address of a mapper
+    # task_id: id of task completed map
+    # chunk_path: path of a chunk being mapped
+    # map_path: path to the local mapped data on the mapper node
+    def mapping_done(self, mapper_addr, task_id, chunk_path, map_path):
+        task = self.tasks[task_id]
+        chunk = task.get_chunk(chunk_path)
+        chunk["status"] = MapStatus.map_applied
+
+        map_completed = self._check_task_status(task_id)
+
+        if map_completed:
+            task.status = TaskStatus.mapping_done
+            self._start_reduce(task_id)
+
+    def _check_task_status(self, task_id):
+        task = self.tasks[task_id]
+        for chunk in task.chunks:
+            if chunk["status"] != MapStatus.map_applied:
+                return False
+
+        return True
 
     def get_status(self, input):
         pass
 
-    # get heartbeat from worker
-    def heartbeat(self, worker_addr):
-        if worker_addr not in self.workers:
-            print('register worker ' + worker_addr)
+    def _start_reduce(self, task_id):
+        pass
 
-        self.workers[worker_addr] = datetime.now()
-        return {'status': Status.ok}
+    def reduce_done(self):
+        pass
 
 # args: host and port: localhost 11111
 if __name__ == '__main__':
