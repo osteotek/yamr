@@ -41,6 +41,5 @@ class TestPartition(unittest.TestCase):
         self.assertEquals(1, p.get_partition("moasold", 1, 3))
         self.assertEquals(1, p.get_partition("bbsa", 1, 4))
 
-
 if __name__ == '__main__':
     unittest.main()

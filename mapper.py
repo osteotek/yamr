@@ -1,6 +1,8 @@
 import _thread
 import sys
 import uuid
+import os
+import json
 from map_libs.base_mapper import WordCountMapper
 from hash_partitioner import HashPartitioner
 
@@ -8,7 +10,6 @@ from fake_fs import FakeFS
 
 from enums import MapStatus, Status
 BASE_DIR = "/etc/yamr/"
-
 
 class MapTask:
     def __init__(self, task_id, rds_count, chunk_path, map_script):
@@ -68,6 +69,7 @@ class Mapper:
         task.status = MapStatus.chunk_loaded
         tuples = self.exec_mapping(task, r['data'])
         regions = self.partition(task.rds_count, tuples)
+        self.save_partitions(task_id, task.chunk_path, regions)
 
         task.status = MapStatus.finished
 
@@ -93,6 +95,21 @@ class Mapper:
             v.sort(key=lambda tup: tup[0])
 
         return regions
+
+    # save file in path /base_dir/task_id/chunk_path/1 where 1 is a region number
+    # task_id - unique task_id
+    # chunk_path - path of the processed_chunk
+    # dictionary of mapped data which is sorted to regions
+    def save_partitions(self, task_id, chunk_path, regions):
+        task_dir = self.work_dir + "/" + str(task_id) + chunk_path
+        self.log(task_id, "save map result of " + chunk_path + " to " + task_dir)
+        if not os.path.exists(task_dir):
+            os.makedirs(task_dir)
+
+        for k, v in regions.items():
+            path = task_dir + "/" + str(k)
+            with open(path, 'w') as file:
+                file.write(json.dumps(v))
 
     def get_status(self, task_id):
         t = self.tasks[task_id]
