@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from xmlrpc.server import SimpleXMLRPCServer
-from xmlrpc.client import ServerProxy, Error
+from xmlrpc.client import ServerProxy
 from mapper import Mapper
 import sys
 import _thread
