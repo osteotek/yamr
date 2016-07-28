@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import _thread
 import sys
-from xmlrpc.server import SimpleXMLRPCServer
+import cfg
+import uuid
 from xmlrpc.client import ServerProxy
 from enums import ReduceStatus, Status
 from fake_fs import FakeFS
@@ -29,7 +30,7 @@ class Reducer:
     # path in DFS to files
     def reduce(self, task_id, region, mappers, script_path):
         if task_id not in self.tasks:
-            self.tasks = {}
+            self.tasks[task_id] = {}
 
         task = ReduceTask(task_id, region, mappers, script_path)
         self.tasks[task_id][region] = task
@@ -51,27 +52,13 @@ if __name__ == '__main__':
     port = int(sys.argv[2])
     cfg_path = sys.argv[3]
     script_path = sys.argv[4]
-    rds_count = 5
-
-    chunk = "/my_folder/chunk"
-    fs = FakeFS()  # use fake fs for local development
-    fs.save("aa mm adas aa bb huy what the the i don bmm", chunk)
-
-    with open(script_path, "r") as file:
-        data = file.read()
-        fs.save(data, "/scripts/word_count.py")
 
     opts = cfg.load(cfg_path)
     print("JT address", opts["JobTracker"]["address"])
-
-    mapper = Mapper(opts, fs, name, "http://localhost:" + str(port))
+    fs = FakeFS()
+    reducer = Reducer(fs, name, "http://localhost:" + str(port), opts)
     task_id = uuid.uuid4()
-    r = mapper.map(task_id, rds_count, chunk, "/scripts/word_count.py")
 
-    while mapper.get_status(task_id, chunk)['status'] != MapStatus.finished:
-        pass
-
-    i = 1
-    while i <= 4:
-        print(i, "region:", mapper.read_mapped_data(task_id, i))
-        i += 1
+    r = reducer.reduce(task_id, 4, [], "/scripts/word_count.py")
+    # while mapper.get_status(task_id, chunk)['status'] != MapStatus.finished:
+    # pass
