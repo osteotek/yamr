@@ -77,26 +77,51 @@ class Reducer:
 
     def _process_reduce_task(self, task):
         data = self._load_data_from_mappers(task)
-        result = self.execute_reduce_script(task, data)
-        self._save_result_to_dfs(task.task_id, task.region, result)
-        task.status = ReduceStatus.finished
+
+        if task.status == ReduceStatus.data_loaded:
+            result = self.execute_reduce_script(task, data)
+
+            if task.status == ReduceStatus.data_reduced:
+                self._save_result_to_dfs(task, result)
+
+                if task.status == ReduceStatus.data_saved:
+                    task.status = ReduceStatus.finished
 
     def _load_data_from_mappers(self, task):
-        result = []
-        for mapper in task.mappers:
-            data = self.mapper_cl.load_mapped_data(mapper, task.task_id, task.region)
-            result.extend(data)
-        return result
+        try:
+            self.log(task.task_id, "Start loading data from mappers to region " + str(task.region))
+            task.status = ReduceStatus.start_data_loading
+            result = []
+            for mapper in task.mappers:
+                data = self.mapper_cl.load_mapped_data(mapper, task.task_id, task.region)
+                result.extend(data)
+
+            task.status = ReduceStatus.data_loaded
+            return result
+        except Exception as e:
+            task.status = ReduceStatus.err_data_loading
+            self.err(task.task_id, "Error during loading data for region " + str(region), e)
 
     def execute_reduce_script(self, task, data):
-        reducer = map_libs.word_count.Reducer()
-        return reducer.run_reduce(data)
+        try:
+            self.log(task.task_id, "Start loading reducing script for executing " + task.script_path)
+            reducer = map_libs.word_count.Reducer()
+            task.status = ReduceStatus.data_reduced
+            return reducer.run_reduce(data)
+        except Exception as e:
+            task.status = ReduceStatus.err_reduce_script
+            self.err("Error during executing reducer script", e)
 
-    # saves reduced result to dfs
-    def _save_result_to_dfs(self, task_id, region, result):
-        path = "/" + str(task_id) + "/result/" + str(region)
-        self.log(task_id, "Save result of region " + str(region) + " to " + path)
-        fs.save(json.dumps(result), path)
+    # save reduced result to dfs
+    def _save_result_to_dfs(self, task, result):
+        try:
+            path = "/" + str(task.task_id) + "/result/" + str(task.region)
+            self.log(task.task_id, "Save result of region " + str(task.region) + " to " + path)
+            fs.save(json.dumps(result), path)
+            task.status = ReduceStatus.data_saved
+        except Exception as e:
+            task.status = ReduceStatus.err_save_result
+            self.err(task_id, "Error during saving region " + str(task.region) + " to DFS")
 
     # get status of current reducer execution
     # task_id - unique task_id

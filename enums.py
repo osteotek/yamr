@@ -20,7 +20,7 @@ class MapStatus:
     accepted = 201  # task has been started
     chunk_loaded = 202  # data chunk has been loaded
     mapper_loaded = 205
-    map_applied = 210 # map function was aplied to the input record
+    map_applied = 210  # map function was applied to the input record
     partitions_saved = 220
 
     chunk_not_found = 404
@@ -46,7 +46,16 @@ class TaskStatus:
 class ReduceStatus:
     accepted = 201  # task has been started
 
+    start_data_loading = 202
+    data_loaded = 205  # data was loaded from mappers
+    data_reduced = 206
+    data_saved = 207
+
     reduce_not_found = 404
+    error = 500,
+    err_data_loading = 405
+    err_reduce_script = 510
+    err_save_result = 520
 
     finished = 600
 
