@@ -2,6 +2,7 @@
 
 import sys
 import _thread
+import threading
 import uuid
 import time
 from datetime import datetime
@@ -161,6 +162,8 @@ class JobTracker:
     # task_id: id of task completed map
     # chunk_path: path of a chunk being mapped
     def mapping_done(self, mapper_addr, task_id, chunk_path):
+        lock = threading.Lock()
+        lock.acquire()
         try:
             if task_id not in self.tasks:
                 return {"status": Status.not_found}
@@ -179,8 +182,8 @@ class JobTracker:
                 task.status = TaskStatus.mapping_done
                 _thread.start_new_thread(self._handle_reduce, (task_id,))
                 print("Task: " + task_id + " start reducing")
-        except Exception as e:
-            print(e)
+        finally:
+            lock.release()
 
     def _handle_reduce(self, task_id):
         task = self.tasks[task_id]
@@ -200,31 +203,34 @@ class JobTracker:
                     self.workers_tasks[worker_addr] = "reduce"
                     worker = ServerProxy(worker_addr)
                     worker.reduce(task_id, region, task.mappers(), task.script)
-
-                status = task.status
-
                 time.sleep(0.5)
+
+            status = task.status
+            print(status)
 
     # RPC call from reducer that is done
     # addr - reducer addr
     # task_id - unique task_id
     # region - number of task which was completed
     def reducing_done(self, addr, task_id, region):
-        if task_id not in self.tasks:
-            return {"status": Status.not_found}
+        lock = threading.Lock()
+        lock.acquire()
+        try:
+            if task_id not in self.tasks:
+                return {"status": Status.not_found}
 
-        task = self.tasks[task_id]
+            task = self.tasks[task_id]
 
-        self.regions.pop(region)
+            self.regions.pop(region)
 
-        reduce_done = len(self.regions) == 0
+            reduce_done = len(self.regions) == 0
 
-        if reduce_done:
-            self.current_task = ""
-            print("Task: " + task_id + " complete reducing")
-            task.status = TaskStatus.task_done
-
-        return {"status": Status.ok}
+            if reduce_done:
+                self.current_task = ""
+                print("Task: " + task_id + " complete reducing")
+                task.status = TaskStatus.task_done
+        finally:
+            lock.release()
 
     def _check_task_status(self, task_id):
         task = self.tasks[task_id]
