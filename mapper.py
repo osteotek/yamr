@@ -167,7 +167,7 @@ class Mapper:
             self.err(task_id, "Failed to send result for chunk " + chunk_path, e)
 
     def get_status(self, task_id, chunk_path):
-        if self.tasks not in self.tasks and chunk_path not in self.tasks[task_id]:
+        if task_id not in self.tasks and chunk_path not in self.tasks[task_id]:
             return {'status': MapStatus.chunk_not_found}
 
         t = self.tasks[task_id][chunk_path]
@@ -216,18 +216,19 @@ if __name__ == '__main__':
 
     chunk = "/my_folder/chunk"
     fs = FakeFS()  # use fake fs for local development
-    fs.save("aa mm adas aa bb huy what the the i don bmm", chunk)
+    fs.save("(201501, 31.2),(201307, 32),(201302, 31.2),(201301, 21.2),(201407, 21.2),(201302, 11.2),(201002, 20),\
+            (201402, 30.2),(201304, 25),(201305, 11.2),(201601, 13.2),(201605, 15.2),(201502, 18.2),(201003, 20)", chunk)
 
     with open(script_path, "r") as file:
         data = file.read()
-        fs.save(data, "/scripts/word_count.py")
+        fs.save(data, "/scripts/max_temp.py")
 
     opts = cfg.load(cfg_path)
-    print("JT address", opts["JobTracker"]["address"])
+    print("JT address", opts["jt_addr"])
 
     mapper = Mapper(opts, fs, name, "http://localhost:" + str(port))
     task_id = uuid.uuid4()
-    r = mapper.map(task_id, rds_count, chunk, "/scripts/word_count.py")
+    r = mapper.map(task_id, rds_count, chunk, "/scripts/max_temp.py")
 
     while mapper.get_status(task_id, chunk)['status'] != MapStatus.finished:
         pass

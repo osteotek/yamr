@@ -15,6 +15,8 @@ class Mapper:
     def map(self, data):
         if data is None:
             return
+
+        data = data.rstrip()
         tuples = ast.literal_eval(data)
 
         for t in tuples:
