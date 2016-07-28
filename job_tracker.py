@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-import os
-import random
+
 import sys
-import yaml
 import _thread
-import socket
 import uuid
 import time
 from datetime import datetime
@@ -125,16 +122,11 @@ class JobTracker:
         self.tasks[task_id] = task
 
         task.status = TaskStatus.mapping
-        status = task.status
 
         print("Task: " + task_id + " start mapping")
         _thread.start_new_thread(self._handle_map, (task_id,))
 
-        # while status != TaskStatus.task_done:
-        #     status = task.status
-        #     time.sleep(1)
-
-        return "done"
+        return task_id
 
     def get_free_worker(self):
         if len(self.free_workers) == 0:
@@ -162,7 +154,7 @@ class JobTracker:
 
                 status = task.status
 
-                time.sleep(0.5)
+                time.sleep(0.1)
 
     # RPC call from mapped when a task is done:
     # mapper_addr: address of a mapper
@@ -229,6 +221,7 @@ class JobTracker:
 
         if reduce_done:
             self.current_task = ""
+            print("Task: " + task_id + " complete reducing")
             task.status = TaskStatus.task_done
 
         return {"status": Status.ok}
@@ -241,8 +234,18 @@ class JobTracker:
 
         return True
 
-    def get_status(self, input):
-        pass
+    def get_status(self, task_id):
+        task = self.tasks[task_id]
+        return task.status
+
+    def get_result(self, task_id):
+        task = self.tasks[task_id]
+        results = []
+        for i in range(task.rds_count):
+            path = "/" + task_id + "/result/" + str(i+1)
+            results.append(path)
+
+        return results
 
 
 # args: host and port: localhost 11111

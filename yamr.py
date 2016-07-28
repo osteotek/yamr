@@ -2,10 +2,13 @@
 
 import click
 import os
+import time
 from xmlrpc.client import ServerProxy
 
 import sys
 from os.path import dirname
+from enums import TaskStatus
+
 sys.path.append(dirname(dirname(__file__)))
 import yadfs.client.client
 import yadfs.utils.enums
@@ -24,6 +27,12 @@ class Client:
     def upload(self, path, remote_path):
         return self.fs.create_file(path, remote_path)
 
+    def get_status(self, task_id):
+        return self.jt.get_status(task_id)
+
+    def get_result(self, task_id):
+        return self.jt.get_result(task_id)
+
 
 # CLI
 @click.group(invoke_without_command=False)
@@ -38,8 +47,17 @@ def cli(ctx):
 def start_task(path, script):
     """Start new task"""
     cl = Client()
-    res = cl.start_task(path, script)
-    print(res)
+    task_id = cl.start_task(path, script)
+    status = cl.get_status(task_id)
+    while status != TaskStatus.task_done:
+        time.sleep(0.5)
+        status = cl.get_status(task_id)
+
+    res = cl.get_result(task_id)
+
+    print("Paths with result:")
+    for path in res:
+        print(path)
 
 
 @cli.command()

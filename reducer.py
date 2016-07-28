@@ -147,7 +147,7 @@ class Reducer:
             task.status = ReduceStatus.data_saved
         except Exception as e:
             task.status = ReduceStatus.err_save_result
-            self.err(task_id, "Error during saving region " + str(task.region) + " to DFS")
+            self.err(task.task_id, "Error during saving region " + str(task.region) + " to DFS")
 
     def _send_reducing_done(self, task):
         try:
