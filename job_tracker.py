@@ -42,6 +42,11 @@ class Task:
             if chunk_path == chunk.path:
                 return chunk
 
+    def reset_chunk_from_worker(self, worker):
+        for chunk in self.chunks:
+            if worker == chunk.mapper:
+                chunk.status = MapStatus.accepted
+
     def get_chunk_to_process(self):
         for chunk in self.chunks:
             if chunk.status == MapStatus.accepted:
@@ -58,8 +63,9 @@ class JobTracker:
         self.workers = {}
         self.tasks = {}
         self.worker_timeout = 2
-        self.queue = []
         self.free_workers = []
+        self.workers_tasks = {}
+        self.current_task = ""
 
     # start job tracker
     def start(self):
@@ -93,18 +99,19 @@ class JobTracker:
                 if not self._is_alive_worker(w_name):
                     print('Worker ', w_name, ' detected as not alive')
                     self.workers.pop(w_name)
-        time.sleep(1)
+                    if self.workers_tasks[w_name] == "map":
+                        task = self.tasks[self.current_task]
+                        task.reset_chunk_from_worker(w_name)
+
+            time.sleep(1)
 
     def create_task(self, input, map_script, reduce_script):
         input_info = self.dfs.path_status(input)
         task_id = uuid.uuid4()
-        self.tasks[task_id] = Task(input, map_script, reduce_script, input_info['chunks'])
-        self._start_task(task_id)
-        return "ok"
-    
-    def _start_task(self, task_id):
-        task = self.tasks[task_id]
-        
+        self.current_task = task_id
+        task = Task(input, map_script, reduce_script, input_info['chunks'])
+        self.tasks[task_id] = task
+
         task.status = TaskStatus.mapping
         status = task.status
 
@@ -131,6 +138,7 @@ class JobTracker:
             while status != TaskStatus.mapping_done:
                 worker_addr = self.get_free_worker()
                 if worker_addr is not None:
+                    self.workers_tasks[worker_addr] = "map"
                     worker = ServerProxy(worker_addr)
                     worker.map(task_id, len(self.workers), chunk.path, task.map_script)
                     chunk.mapper = worker_addr
@@ -157,14 +165,13 @@ class JobTracker:
         self.free_workers.append(mapper_addr)
 
         if map_completed:
-            print("Task: " + task_id + " completed")
+            print("Task: " + task_id + " map completed")
             task.status = TaskStatus.mapping_done
             _thread.start_new_thread(self._handle_reduce, task_id)
             print("Task: " + task_id + " start reducing")
 
     def _handle_reduce(self, task_id):
-        task = self.tasks[task_id]
-
+        pass
 
     # RPC call from reducer that is done
     # addr - reducer addr
@@ -175,6 +182,12 @@ class JobTracker:
             return {"status": Status.not_found}
 
         task = self.tasks[task_id]
+
+        reduce_done = False # TODO
+
+        if reduce_done:
+            self.current_task = ""
+            task.status = TaskStatus.task_done
 
         return {"status": Status.ok}
 
