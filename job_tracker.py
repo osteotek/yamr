@@ -35,11 +35,19 @@ class Task:
         for chunk_path, _ in chunks.items():
             self.chunks.append(Chunk(chunk_path, MapStatus.accepted, ""))
         self.status = TaskStatus.accepted
+        self.map_paths = []
 
     def get_chunk(self, chunk_path):
         for chunk in self.chunks:
             if chunk_path == chunk.path:
                 return chunk
+
+    def get_chunk_to_process(self):
+        for chunk in self.chunks:
+            if chunk.status == MapStatus.accepted:
+                return chunk
+
+        return None
 
 
 class JobTracker:
@@ -50,6 +58,8 @@ class JobTracker:
         self.workers = {}
         self.tasks = {}
         self.worker_timeout = 2
+        self.queue = []
+        self.free_workers = []
 
     # start job tracker
     def start(self):
@@ -65,6 +75,7 @@ class JobTracker:
             print('register worker ' + worker_addr)
 
         self.workers[worker_addr] = datetime.now()
+        self.free_workers.append(worker_addr)
         return {'status': Status.ok}
 
     def _is_alive_worker(self, w_addr):
@@ -93,17 +104,40 @@ class JobTracker:
     
     def _start_task(self, task_id):
         task = self.tasks[task_id]
-        wn = 0
-        for chunk in task.chunks:
-            if wn > len(self.workers):
-                wn = 0
-            mapper = ServerProxy(self.workers.keys()[wn])
-            mapper.map(task_id, len(self.workers), chunk.path, task.map_script)
-            chunk.mapper = self.workers.keys()[wn]
-            chunk.status = MapStatus.chunk_loaded
-            wn = wn + 1
+        # wn = 0
+        # for chunk in task.chunks:
+        #     if wn > len(self.workers):
+        #         wn = 0
+        #     mapper = ServerProxy(self.workers.keys()[wn])
+        #     mapper.map(task_id, len(self.workers), chunk.path, task.map_script)
+        #     chunk.mapper = self.workers.keys()[wn]
+        #     chunk.status = MapStatus.chunk_loaded
+        #     wn = wn + 1
         
         task.status = TaskStatus.mapping
+        _thread.start_new_thread(self._handle_map, task_id)
+
+    def get_free_worker(self):
+        if len(self.free_workers) == 0:
+            return None
+        worker = self.free_workers[0]
+        self.free_workers.remove(worker)
+        return worker
+
+    def _handle_map(self, task_id):
+        task = self.tasks[task_id]
+        chunk = task.get_chunk_to_process()
+        status = task.status
+        if chunk is not None:
+            while status != TaskStatus.mapping_done:
+                worker_addr = self.get_free_worker()
+                if worker_addr is not None:
+                    worker = ServerProxy(worker_addr)
+                    worker.map(task_id, len(self.workers), chunk.path, task.map_script)
+                    chunk.mapper = worker_addr
+                    chunk.status = MapStatus.chunk_loaded
+
+                status = task.status
 
     # RPC call from mapped when a task is done:
     # mapper_addr: address of a mapper
@@ -119,9 +153,15 @@ class JobTracker:
 
         map_completed = self._check_task_status(task_id)
 
+        self.free_workers.append(mapper_addr)
+
         if map_completed:
             task.status = TaskStatus.mapping_done
-            self._start_reduce(task_id)
+            _thread.start_new_thread(self._handle_reduce, task_id)
+
+    def _handle_reduce(self, task_id):
+        task = self.tasks[task_id]
+
 
     # RPC call from reducer that is done
     # addr - reducer addr
@@ -141,11 +181,6 @@ class JobTracker:
     def get_status(self, input):
         pass
 
-    def _start_reduce(self, task_id):
-        pass
-
-    def reduce_done(self):
-        pass
 
 # args: host and port: localhost 11111
 if __name__ == '__main__':
