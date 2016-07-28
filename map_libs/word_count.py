@@ -1,3 +1,5 @@
+import re
+
 class Mapper:
     def __init__(self):
         self.tuples = None
@@ -11,7 +13,7 @@ class Mapper:
         if data is None:
             return
 
-        for word in data.strip().split(' '):
+        for word in re.split(r'[\s\n]+', data):
             word = word.strip(',.')
             # exclude empty strings from keys
             if len(word) > 0:

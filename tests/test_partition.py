@@ -7,7 +7,7 @@ class TestPartition(unittest.TestCase):
 
     @staticmethod
     def create_map():
-        return Mapper({"JobTracker": {"address": "http://localhost:11111"}}, None, "addr", "map")
+        return Mapper({"jt_addr": "http://localhost:11111", "base_dir": "/tmp/tst"}, None, "addr", "map")
 
     def test_partition_for_one(self):
         m = self.create_map()
