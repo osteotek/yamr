@@ -60,5 +60,3 @@ class ReduceStatus:
 
     finished = 600
 
-
-

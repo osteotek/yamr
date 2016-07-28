@@ -10,8 +10,6 @@ import map_libs.word_count
 import os
 import json
 
-BASE_DIR = "/etc/yamr/"
-
 # fake mapper client for testing
 # communication reducer and mapper
 class FakeMapperClient:
@@ -34,6 +32,10 @@ class FakeMapperClient:
 
         self.data[map_addr][task_id][region] = data
 
+class RPCMapperClient:
+    def load_mapped_data(self, map_addr, task_id, region):
+        cl = ServerProxy(map_addr)
+        return cl.read_mapped_data(task_id, region)['data']
 
 class ReduceTask:
     def __init__(self, task_id, region, mappers, script_path):
@@ -52,7 +54,7 @@ class Reducer:
         self.job_tracker = ServerProxy(opts["jt_addr"])
         self.tasks = {}
         self.mapper_cl = mapper_cl  # client for loading data from mappers
-        self.work_dir = BASE_DIR + name
+        self.work_dir = opts["base_dir"] + name
 
     def log(self, task_id, msg):
         print("Task", task_id, ":", msg)
