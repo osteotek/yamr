@@ -7,7 +7,10 @@ from xmlrpc.client import ServerProxy
 from enums import ReduceStatus, Status
 from fake_fs import FakeFS
 import map_libs.word_count
+import os
+import json
 
+BASE_DIR = "/etc/yamr/"
 
 # fake mapper client for testing
 # communication reducer and mapper
@@ -49,6 +52,7 @@ class Reducer:
         self.job_tracker = ServerProxy(opts["JobTracker"]["address"])
         self.tasks = {}
         self.mapper_cl = mapper_cl  # client for loading data from mappers
+        self.work_dir = BASE_DIR + name
 
     def log(self, task_id, msg):
         print("Task", task_id, ":", msg)
@@ -74,7 +78,7 @@ class Reducer:
     def _process_reduce_task(self, task):
         data = self._load_data_from_mappers(task)
         result = self.execute_reduce_script(task, data)
-        print("Result", result)
+        self._save_result_to_dfs(task.task_id, task.region, result)
         task.status = ReduceStatus.finished
 
     def _load_data_from_mappers(self, task):
@@ -89,8 +93,10 @@ class Reducer:
         return reducer.run_reduce(data)
 
     # saves reduced result to dfs
-    def save_result_to_dfs(self, task_id, result):
-        pass
+    def _save_result_to_dfs(self, task_id, region, result):
+        path = "/" + str(task_id) + "/result/" + str(region)
+        self.log(task_id, "Save result of region " + str(region) + " to " + path)
+        fs.save(json.dumps(result), path)
 
     # get status of current reducer execution
     # task_id - unique task_id
@@ -124,4 +130,5 @@ if __name__ == '__main__':
     while reducer.get_status(task_id, region)['status'] != ReduceStatus.finished:
         pass
 
-    print('reduce has finished')
+    reg_1 = fs.get_chunk("/"+str(task_id) + "/result/" + str(region))
+    print('reduce has finished', reg_1)
