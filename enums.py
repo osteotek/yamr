@@ -56,6 +56,7 @@ class ReduceStatus:
     err_data_loading = 405
     err_reduce_script = 510
     err_save_result = 520
+    err_send_done = 530
 
     finished = 600
 

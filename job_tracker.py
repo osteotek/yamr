@@ -123,6 +123,13 @@ class JobTracker:
             task.status = TaskStatus.mapping_done
             self._start_reduce(task_id)
 
+    # RPC call from reducer that is done
+    # addr - reducer addr
+    # task_id - unique task_id
+    # region - number of task which was completed
+    def reducing_done(self, addr, task_id, region):
+        return {"status": Status.ok}
+
     def _check_task_status(self, task_id):
         task = self.tasks[task_id]
         for chunk in task.chunks:

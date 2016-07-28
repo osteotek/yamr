@@ -32,12 +32,12 @@ class Mapper:
     def __init__(self, opts, fs, name, my_addr):
         self.name = name
         self.my_addr = my_addr
-        self.job_tracker = ServerProxy(opts["JobTracker"]["address"])
         self.opts = opts
         self.fs = fs  # client to dfs
         self.work_dir = BASE_DIR + name
         self.tasks = {}
         self.hasher = HashPartitioner()
+        self.job_tracker = ServerProxy(opts["jt_addr"])
 
     def log(self, task_id, msg):
         print("Task", task_id, ":", msg)

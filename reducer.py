@@ -49,7 +49,7 @@ class Reducer:
         self.fs = fs
         self.name = name
         self.addr = addr
-        self.job_tracker = ServerProxy(opts["JobTracker"]["address"])
+        self.job_tracker = ServerProxy(opts["jt_addr"])
         self.tasks = {}
         self.mapper_cl = mapper_cl  # client for loading data from mappers
         self.work_dir = BASE_DIR + name
@@ -85,7 +85,7 @@ class Reducer:
                 self._save_result_to_dfs(task, result)
 
                 if task.status == ReduceStatus.data_saved:
-                    task.status = ReduceStatus.finished
+                    self._send_reducing_done(task)
 
     def _load_data_from_mappers(self, task):
         try:
@@ -123,6 +123,15 @@ class Reducer:
             task.status = ReduceStatus.err_save_result
             self.err(task_id, "Error during saving region " + str(task.region) + " to DFS")
 
+    def _send_reducing_done(self, task):
+        try:
+            self.job_tracker.reducing_done(self.addr, str(task.task_id), task.region)
+            self.log(task.task_id, "Sent message to job tracker about finishing reducing of region " + str(task.region))
+            task.status = ReduceStatus.finished
+        except Exception as e:
+            task.status = ReduceStatus.err_send_done
+            self.err(task.task_id, "Failed to send result to JT for region " + str(task.region), e)
+
     # get status of current reducer execution
     # task_id - unique task_id
     # region - regions of keys which reducer should reduce
@@ -141,7 +150,7 @@ if __name__ == '__main__':
     script_path = sys.argv[4]
 
     opts = cfg.load(cfg_path)
-    print("JT address", opts["JobTracker"]["address"])
+    print("JT address", opts["jt_addr"])
     fs = FakeFS()
     task_id = uuid.uuid4()
 
@@ -153,7 +162,6 @@ if __name__ == '__main__':
     mapper_cl.put("map3", task_id, region, [('a', 1), ('d', 1)])
 
     reducer = Reducer(fs, name, "http://localhost:" + str(port), opts, mapper_cl)
-
     r = reducer.reduce(task_id, region, ["map1", "map2"], "/scripts/word_count.py")
     while reducer.get_status(task_id, region)['status'] != ReduceStatus.finished:
         pass
