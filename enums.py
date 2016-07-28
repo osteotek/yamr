@@ -47,14 +47,18 @@ class ReduceStatus:
     accepted = 201  # task has been started
 
     start_data_loading = 202
+    reducer_loaded = 203
     data_loaded = 205  # data was loaded from mappers
     data_reduced = 206
     data_saved = 207
 
     reduce_not_found = 404
+    reduce_script_not_found = 422
+
     error = 500,
     err_data_loading = 405
     err_reduce_script = 510
+    err_reducer_loading = 515
     err_save_result = 520
     err_send_done = 530
 
