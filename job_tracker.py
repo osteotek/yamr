@@ -27,14 +27,14 @@ class Chunk:
 
 
 class Task:
-    def __init__(self, input, script, chunks):
+    def __init__(self, input, script, chunks, rds_count):
         self.input = input
         self.script = script
         self.chunks = []
         for chunk_path, _ in chunks.items():
             self.chunks.append(Chunk(chunk_path, MapStatus.accepted, ""))
         self.status = TaskStatus.accepted
-        self.map_paths = []
+        self.rds_count = rds_count
 
     def get_chunk(self, chunk_path):
         for chunk in self.chunks:
@@ -58,6 +58,13 @@ class Task:
 
         return None
 
+    def mappers(self):
+        mps = set()
+        for chunk in self.chunks:
+            mps.add(chunk.mapper)
+
+        return mps
+
 
 class JobTracker:
     def __init__(self, dump_on=True):
@@ -70,6 +77,7 @@ class JobTracker:
         self.free_workers = []
         self.workers_tasks = {}
         self.current_task = ""
+        self.regions = {}
 
     # start job tracker
     def start(self):
@@ -113,7 +121,7 @@ class JobTracker:
         input_info = self.dfs.path_status(input)
         task_id = str(uuid.uuid4())
         self.current_task = task_id
-        task = Task(input, script, input_info['chunks'])
+        task = Task(input, script, input_info['chunks'], len(self.workers))
         self.tasks[task_id] = task
 
         task.status = TaskStatus.mapping
@@ -146,8 +154,9 @@ class JobTracker:
                 worker_addr = self.get_free_worker()
                 if worker_addr is not None:
                     self.workers_tasks[worker_addr] = "map"
+
                     worker = ServerProxy(worker_addr)
-                    worker.map(task_id, len(self.workers), chunk.path, task.script)
+                    worker.map(task_id, task.rds_count, chunk.path, task.script)
                     chunk.mapper = worker_addr
                     chunk.status = MapStatus.chunk_loaded
 
@@ -182,7 +191,27 @@ class JobTracker:
             print(e)
 
     def _handle_reduce(self, task_id):
-        pass
+        task = self.tasks[task_id]
+        wn = 0
+        for r in range(task.rds_count):
+            self.regions[r] = self.workers[wn]
+            wn += 1
+            if wn == len(self.workers):
+                wn = 0
+
+        status = task.status
+
+        while status != TaskStatus.task_done:
+            for region, worker_addr in self.free_workers:
+                if worker_addr is not None:
+                    self.workers_tasks[worker_addr] = "reduce"
+
+                    worker = ServerProxy(worker_addr)
+                    worker.reduce(task_id, region, task.mappers(), task.script)
+
+                status = task.status
+
+                time.sleep(0.5)
 
     # RPC call from reducer that is done
     # addr - reducer addr
@@ -194,7 +223,9 @@ class JobTracker:
 
         task = self.tasks[task_id]
 
-        reduce_done = False # TODO
+        self.regions.pop(region)
+
+        reduce_done = len(self.regions) == 0
 
         if reduce_done:
             self.current_task = ""
