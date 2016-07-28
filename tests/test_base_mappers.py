@@ -30,14 +30,14 @@ class TestMappers(unittest.TestCase):
 
         self.assertListEqual(exp, r)
 
-    def test_word_count_with_mappers(self):
-        m = Mapper()
-
-        data = "aa cc\naa bb"
-        r = m.run_map(data)
-        exp = [("aa", 1), ("cc", 1), ("aa", 1), ("bb", 1)]
-
-        self.assertListEqual(exp, r)
+    # def test_word_count_with_mappers(self):
+    #     m = Mapper()
+    #
+    #     data = "aa cc\naa bb"
+    #     r = m.run_map(data)
+    #     exp = [("aa", 1), ("cc", 1), ("aa", 1), ("bb", 1)]
+    #
+    #     self.assertListEqual(exp, r)
 
 if __name__ == '__main__':
     unittest.main()
