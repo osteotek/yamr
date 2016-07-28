@@ -104,18 +104,17 @@ class JobTracker:
     
     def _start_task(self, task_id):
         task = self.tasks[task_id]
-        # wn = 0
-        # for chunk in task.chunks:
-        #     if wn > len(self.workers):
-        #         wn = 0
-        #     mapper = ServerProxy(self.workers.keys()[wn])
-        #     mapper.map(task_id, len(self.workers), chunk.path, task.map_script)
-        #     chunk.mapper = self.workers.keys()[wn]
-        #     chunk.status = MapStatus.chunk_loaded
-        #     wn = wn + 1
         
         task.status = TaskStatus.mapping
+        status = task.status
+
+        print("Task: " + task_id + " start mapping")
         _thread.start_new_thread(self._handle_map, task_id)
+
+        while status != TaskStatus.task_done:
+            status = task.status
+
+        return "done"
 
     def get_free_worker(self):
         if len(self.free_workers) == 0:
@@ -147,6 +146,8 @@ class JobTracker:
         if task_id not in self.tasks:
             return {"status": Status.not_found}
 
+        print("Task: " + task_id + " completed map for chunk: " + chunk_path)
+
         task = self.tasks[task_id]
         chunk = task.get_chunk(chunk_path)
         chunk.status = MapStatus.map_applied
@@ -156,8 +157,10 @@ class JobTracker:
         self.free_workers.append(mapper_addr)
 
         if map_completed:
+            print("Task: " + task_id + " completed")
             task.status = TaskStatus.mapping_done
             _thread.start_new_thread(self._handle_reduce, task_id)
+            print("Task: " + task_id + " start reducing")
 
     def _handle_reduce(self, task_id):
         task = self.tasks[task_id]
@@ -168,6 +171,11 @@ class JobTracker:
     # task_id - unique task_id
     # region - number of task which was completed
     def reducing_done(self, addr, task_id, region):
+        if task_id not in self.tasks:
+            return {"status": Status.not_found}
+
+        task = self.tasks[task_id]
+
         return {"status": Status.ok}
 
     def _check_task_status(self, task_id):
