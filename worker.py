@@ -57,6 +57,14 @@ class Worker:
     def read_mapped_data(self, task_id, region_number):
         return self.mapper.read_mapped_data(task_id, region_number)
 
+    # signal from JT for starting reducing
+    # task_id - unique task_id
+    # region for which reducer is responsible
+    # mappers which contain data for current task
+    # path in DFS to files
+    def reduce(self, task_id, region, mappers, script_path):
+        return self.reducer.reduce(task_id, region, mappers, script_path)
+
 if __name__ == '__main__':
     port = int(sys.argv[1])
     addr = "http://localhost:" + str(port)
