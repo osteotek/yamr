@@ -3,6 +3,7 @@
 import click
 import os
 import time
+import json
 from xmlrpc.client import ServerProxy
 
 import sys
@@ -33,6 +34,9 @@ class Client:
     def get_result(self, task_id):
         return self.jt.get_result(task_id)
 
+    def get_file(self, path):
+        return self.fs.get_file_content(path)
+
 
 # CLI
 @click.group(invoke_without_command=False)
@@ -55,9 +59,17 @@ def start_task(path, script):
 
     res = cl.get_result(task_id)
 
-    print("Paths with result:")
+    data = []
+
     for path in res:
-        print(path)
+        data.append(cl.get_file(path))
+
+    result = []
+    for part in data:
+        result.extend(json.loads(part[1]))
+
+    for t in result:
+        print(str(t[0]) + ": " + str(t[1]))
 
 
 @cli.command()

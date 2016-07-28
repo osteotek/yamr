@@ -76,6 +76,7 @@ class JobTracker:
         self.workers_tasks = {}
         self.current_task = ""
         self.regions = {}
+        self.lock = threading.Lock()
 
     # start job tracker
     def start(self):
@@ -153,17 +154,15 @@ class JobTracker:
                     chunk.mapper = worker_addr
                     chunk.status = MapStatus.chunk_loaded
 
-                status = task.status
-
-                time.sleep(0.1)
+            status = task.status
+            time.sleep(0.1)
 
     # RPC call from mapped when a task is done:
     # mapper_addr: address of a mapper
     # task_id: id of task completed map
     # chunk_path: path of a chunk being mapped
     def mapping_done(self, mapper_addr, task_id, chunk_path):
-        lock = threading.Lock()
-        lock.acquire()
+        self.lock.acquire()
         try:
             if task_id not in self.tasks:
                 return {"status": Status.not_found}
@@ -183,7 +182,7 @@ class JobTracker:
                 _thread.start_new_thread(self._handle_reduce, (task_id,))
                 print("Task: " + task_id + " start reducing")
         finally:
-            lock.release()
+            self.lock.release()
 
     def _handle_reduce(self, task_id):
         task = self.tasks[task_id]
@@ -206,15 +205,13 @@ class JobTracker:
                 time.sleep(0.5)
 
             status = task.status
-            print(status)
 
     # RPC call from reducer that is done
     # addr - reducer addr
     # task_id - unique task_id
     # region - number of task which was completed
     def reducing_done(self, addr, task_id, region):
-        lock = threading.Lock()
-        lock.acquire()
+        self.lock.acquire()
         try:
             if task_id not in self.tasks:
                 return {"status": Status.not_found}
@@ -230,7 +227,7 @@ class JobTracker:
                 print("Task: " + task_id + " complete reducing")
                 task.status = TaskStatus.task_done
         finally:
-            lock.release()
+            self.lock.release()
 
     def _check_task_status(self, task_id):
         task = self.tasks[task_id]
