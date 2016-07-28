@@ -203,12 +203,10 @@ class JobTracker:
         status = task.status
 
         while status != TaskStatus.task_done:
-            for region, worker_addr in self.regions.items():
+            for region, worker_addr in self.regions.copy().items():
                 if worker_addr in self.free_workers:
                     self.workers_tasks[worker_addr] = "reduce"
-
                     worker = ServerProxy(worker_addr)
-                    print(task.mappers())
                     worker.reduce(task_id, region, task.mappers(), task.script)
 
                 status = task.status
