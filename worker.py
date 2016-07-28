@@ -14,7 +14,7 @@ import yadfs.client.client
 class Worker:
     def __init__(self, fs, name, addr, opts):
         self.addr = addr
-        self.jt_addr = opts["JobTracker"]["address"]
+        self.jt_addr = opts["jt_addr"]
         self.jt = ServerProxy(self.jt_addr)
         self.hb_timeout = 0.5  # heartbeat timeout in seconds
         self.on = True
@@ -32,7 +32,7 @@ class Worker:
             try:
                 self.jt.heartbeat(self.addr)
             except Exception as e:
-                pass
+                print(e)
             time.sleep(self.hb_timeout)
 
     # map data by applying some data function
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     opts = cfg.load(cfg_path)
 
     fs = yadfs.client.client.Client()
-    worker = Worker(fake_fs, str(port), addr, opts)
+    worker = Worker(fs, str(port), addr, opts)
     worker.start()
 
     server = SimpleXMLRPCServer(("localhost", port))

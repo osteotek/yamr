@@ -27,10 +27,9 @@ class Chunk:
 
 
 class Task:
-    def __init__(self, input, map_script, reduce_script, chunks):
+    def __init__(self, input, script, chunks):
         self.input = input
-        self.map_script = map_script
-        self.reduce_script = reduce_script
+        self.script = script
         self.chunks = []
         for chunk_path, _ in chunks.items():
             self.chunks.append(Chunk(chunk_path, MapStatus.accepted, ""))
@@ -105,21 +104,22 @@ class JobTracker:
 
             time.sleep(1)
 
-    def create_task(self, input, map_script, reduce_script):
+    def create_task(self, input, script):
         input_info = self.dfs.path_status(input)
-        task_id = uuid.uuid4()
+        task_id = str(uuid.uuid4())
         self.current_task = task_id
-        task = Task(input, map_script, reduce_script, input_info['chunks'])
+        task = Task(input, script, input_info['chunks'])
         self.tasks[task_id] = task
 
         task.status = TaskStatus.mapping
         status = task.status
 
         print("Task: " + task_id + " start mapping")
-        _thread.start_new_thread(self._handle_map, task_id)
+        _thread.start_new_thread(self._handle_map, (task_id,))
 
-        while status != TaskStatus.task_done:
-            status = task.status
+        # while status != TaskStatus.task_done:
+        #     status = task.status
+        #     time.sleep(1)
 
         return "done"
 
@@ -140,35 +140,40 @@ class JobTracker:
                 if worker_addr is not None:
                     self.workers_tasks[worker_addr] = "map"
                     worker = ServerProxy(worker_addr)
-                    worker.map(task_id, len(self.workers), chunk.path, task.map_script)
+                    worker.map(task_id, len(self.workers), chunk.path, task.script)
                     chunk.mapper = worker_addr
                     chunk.status = MapStatus.chunk_loaded
 
                 status = task.status
+
+                time.sleep(0.5)
 
     # RPC call from mapped when a task is done:
     # mapper_addr: address of a mapper
     # task_id: id of task completed map
     # chunk_path: path of a chunk being mapped
     def mapping_done(self, mapper_addr, task_id, chunk_path):
-        if task_id not in self.tasks:
-            return {"status": Status.not_found}
+        try:
+            if task_id not in self.tasks:
+                return {"status": Status.not_found}
 
-        print("Task: " + task_id + " completed map for chunk: " + chunk_path)
+            print("Task: " + task_id + " completed map for chunk: " + chunk_path)
 
-        task = self.tasks[task_id]
-        chunk = task.get_chunk(chunk_path)
-        chunk.status = MapStatus.map_applied
+            task = self.tasks[task_id]
+            chunk = task.get_chunk(chunk_path)
+            chunk.status = MapStatus.map_applied
 
-        map_completed = self._check_task_status(task_id)
+            map_completed = self._check_task_status(task_id)
 
-        self.free_workers.append(mapper_addr)
+            self.free_workers.append(mapper_addr)
 
-        if map_completed:
-            print("Task: " + task_id + " map completed")
-            task.status = TaskStatus.mapping_done
-            _thread.start_new_thread(self._handle_reduce, task_id)
-            print("Task: " + task_id + " start reducing")
+            if map_completed:
+                print("Task: " + task_id + " map completed")
+                task.status = TaskStatus.mapping_done
+                _thread.start_new_thread(self._handle_reduce, task_id)
+                print("Task: " + task_id + " start reducing")
+        except Exception as e:
+            print(e)
 
     def _handle_reduce(self, task_id):
         pass
@@ -215,7 +220,7 @@ if __name__ == '__main__':
     jt = JobTracker(dump_on=True)
     jt.start()
 
-    server = SimpleXMLRPCServer((host, port), logRequests=True, allow_none=True)
+    server = SimpleXMLRPCServer((host, port), logRequests=False, allow_none=True)
     server.register_introspection_functions()
     server.register_instance(jt)
     server.serve_forever()

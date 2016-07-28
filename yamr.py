@@ -18,8 +18,8 @@ class Client:
             os.environ['YAMR_JT'] = 'http://localhost:11111'
         self.jt = ServerProxy(os.environ['YAMR_JT'])
 
-    def start_task(self, inp, map_script, reduce_script):
-        return self.jt.create_task(inp, map_script, reduce_script)
+    def start_task(self, inp, script):
+        return self.jt.create_task(inp, script)
 
     def upload(self, path, remote_path):
         return self.fs.create_file(path, remote_path)
@@ -34,12 +34,11 @@ def cli(ctx):
 
 @cli.command()
 @click.argument('path')
-@click.argument('map_script')
-@click.argument('reduce_script')
-def start_task(path, map_script, reduce_script):
+@click.argument('script')
+def start_task(path, script):
     """Start new task"""
     cl = Client()
-    res = cl.start_task(path, map_script, reduce_script)
+    res = cl.start_task(path, script)
     print(res)
 
 

@@ -11,6 +11,7 @@ from xmlrpc.client import ServerProxy
 from fake_fs import FakeFS
 from enums import MapStatus, Status
 
+
 # unique map task for one chunk
 class MapTask:
     def __init__(self, task_id, rds_count, chunk_path, map_script):
@@ -53,9 +54,9 @@ class Mapper:
         print("Map request - task_id:", task_id, "rdc_count:", rds_count, "chunk_path:", chunk_path,
               "map_script:", map_script, "restart_task:", restart_task)
 
-        if task_id in self.tasks and chunk_path in self.tasks[task_id] and not restart_task:
-            self.log(task_id, "Task with the same id is already exists.")
-            return {'status': MapStatus.already_executed}
+        # if task_id in self.tasks and chunk_path in self.tasks[task_id] and not restart_task:
+        #     self.log(task_id, "Task with the same id is already exists.")
+        #     return {'status': MapStatus.already_executed}
 
         if task_id not in self.tasks:
             self.tasks[task_id] = {}
@@ -135,7 +136,7 @@ class Mapper:
         return regions
 
     def _get_chunk_dir_path(self, task_id, chunk_path):
-        return  self.work_dir + "/" + str(task_id) + chunk_path
+        return self.work_dir + "/" + str(task_id) + chunk_path
 
     # save file in path /base_dir/task_id/chunk_path/1 where 1 is a region number
     # task_id - unique task_id
@@ -143,7 +144,7 @@ class Mapper:
     # dictionary of mapped data which is sorted to regions
     def save_partitions(self, task, chunk_path, regions):
         try:
-            task_dir = self._get_chunk_dir_path(task_id, chunk_path)
+            task_dir = self._get_chunk_dir_path(task.task_id, chunk_path)
             self.log(task.task_id, "save map result of " + chunk_path + " to " + task_dir)
             if not os.path.exists(task_dir):
                 os.makedirs(task_dir)
