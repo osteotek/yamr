@@ -143,7 +143,7 @@ class Reducer:
         try:
             path = "/" + str(task.task_id) + "/result/" + str(task.region)
             self.log(task.task_id, "Save result of region " + str(task.region) + " to " + path)
-            fs.save(json.dumps(result), path)
+            self.fs.save(json.dumps(result), path)
             task.status = ReduceStatus.data_saved
         except Exception as e:
             task.status = ReduceStatus.err_save_result

@@ -202,7 +202,7 @@ class Mapper:
                 result.extend([(x[0], x[1]) for x in list])
 
             self.log(task_id, "Send to reducer data for region " + str(region_number))
-            return result
+            return {'status': Status.ok, 'data': result}
         except Exception as e:
             self.log(task_id, "Error during loading region " + str(region_number) + ": " + str(e))
             return {'status': Status.error, 'data': []}

@@ -63,7 +63,7 @@ class Task:
         for chunk in self.chunks:
             mps.add(chunk.mapper)
 
-        return mps
+        return list(mps)
 
 
 class JobTracker:
@@ -185,7 +185,7 @@ class JobTracker:
             if map_completed:
                 print("Task: " + task_id + " map completed")
                 task.status = TaskStatus.mapping_done
-                _thread.start_new_thread(self._handle_reduce, task_id)
+                _thread.start_new_thread(self._handle_reduce, (task_id,))
                 print("Task: " + task_id + " start reducing")
         except Exception as e:
             print(e)
@@ -193,20 +193,22 @@ class JobTracker:
     def _handle_reduce(self, task_id):
         task = self.tasks[task_id]
         wn = 0
+        workers = list(self.workers.keys())
         for r in range(task.rds_count):
-            self.regions[r] = self.workers[wn]
+            self.regions[r+1] = workers[wn]
             wn += 1
-            if wn == len(self.workers):
+            if wn == len(workers):
                 wn = 0
 
         status = task.status
 
         while status != TaskStatus.task_done:
-            for region, worker_addr in self.free_workers:
-                if worker_addr is not None:
+            for region, worker_addr in self.regions.items():
+                if worker_addr in self.free_workers:
                     self.workers_tasks[worker_addr] = "reduce"
 
                     worker = ServerProxy(worker_addr)
+                    print(task.mappers())
                     worker.reduce(task_id, region, task.mappers(), task.script)
 
                 status = task.status
