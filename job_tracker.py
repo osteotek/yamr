@@ -46,6 +46,11 @@ class Task:
             if worker == chunk.mapper:
                 chunk.status = MapStatus.accepted
 
+    def complete_chunk_from_worker(self, chunk_path):
+        for chunk in self.chunks:
+            if chunk_path == chunk.path:
+                chunk.status = MapStatus.map_applied
+
     def get_chunk_to_process(self):
         for chunk in self.chunks:
             if chunk.status == MapStatus.accepted:
@@ -132,10 +137,12 @@ class JobTracker:
 
     def _handle_map(self, task_id):
         task = self.tasks[task_id]
-        chunk = task.get_chunk_to_process()
         status = task.status
-        if chunk is not None:
-            while status != TaskStatus.mapping_done:
+
+        while status != TaskStatus.mapping_done:
+            chunk = task.get_chunk_to_process()
+
+            if chunk is not None:
                 worker_addr = self.get_free_worker()
                 if worker_addr is not None:
                     self.workers_tasks[worker_addr] = "map"
@@ -160,8 +167,7 @@ class JobTracker:
             print("Task: " + task_id + " completed map for chunk: " + chunk_path)
 
             task = self.tasks[task_id]
-            chunk = task.get_chunk(chunk_path)
-            chunk.status = MapStatus.map_applied
+            task.complete_chunk_from_worker(chunk_path)
 
             map_completed = self._check_task_status(task_id)
 
