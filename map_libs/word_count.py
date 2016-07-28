@@ -13,8 +13,8 @@ class Mapper:
         if data is None:
             return
 
-        #for word in re.split(r'[\s\n]+', data):
-        for word in data.split(' '):
+        for word in re.compile('\w+').findall(data):
+        #for word in data.split(' '):
             word = word.strip(',.')
             # exclude empty strings from keys
             if len(word) > 0:
