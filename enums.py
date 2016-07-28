@@ -46,6 +46,8 @@ class TaskStatus:
 class ReduceStatus:
     accepted = 201  # task has been started
 
+    reduce_not_found = 404
+
     finished = 600
 
 

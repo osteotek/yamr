@@ -169,10 +169,10 @@ class Mapper:
 
     def get_status(self, task_id, chunk_path):
         if self.tasks not in self.tasks and chunk_path not in self.tasks[task_id]:
-            return {'status': MapStatus.chunk_not_found, "in_progress": False}
+            return {'status': MapStatus.chunk_not_found}
 
         t = self.tasks[task_id][chunk_path]
-        return {'status': t.status, 'in_progress': t.in_progress}
+        return {'status': t.status}
 
     # read mapped data for specific region
     # task_id - unique task_id
