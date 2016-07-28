@@ -1,4 +1,4 @@
-import ast
+import json
 
 # this task count maximum year temp
 # it requires input as "(201604, 32.5),
@@ -16,9 +16,7 @@ class Mapper:
         if data is None:
             return
 
-        data = data.rstrip()
-        tuples = ast.literal_eval(data)
-
+        tuples = json.loads(data)
         for t in tuples:
             year = int(str(t[0])[:4])
             self.emit(year, t[1])
