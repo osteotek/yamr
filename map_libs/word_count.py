@@ -40,11 +40,10 @@ class Reducer:
         result = []
 
         curr_key = data[0][0]
-
         new_t = (curr_key, [])
         result.append(new_t)
 
-        for t in data:
+        for t in sorted(data, key=lambda x: x[0]):
             key = t[0]
             val = t[1]
 

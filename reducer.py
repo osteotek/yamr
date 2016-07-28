@@ -124,9 +124,12 @@ if __name__ == '__main__':
 
     mapper_cl = FakeMapperClient()
     mapper_cl.put("map1", task_id, region, [('a', 1), ('a', 1), ('a', 1), ('b', 1), ('b', 1)])
+    mapper_cl.put("map2", task_id, region, [('a', 1), ('b', 1), ('b', 1), ('d', 1)])
+    mapper_cl.put("map3", task_id, region, [('a', 1), ('d', 1)])
+
     reducer = Reducer(fs, name, "http://localhost:" + str(port), opts, mapper_cl)
 
-    r = reducer.reduce(task_id, region, ["map1"], "/scripts/word_count.py")
+    r = reducer.reduce(task_id, region, ["map1", "map2"], "/scripts/word_count.py")
     while reducer.get_status(task_id, region)['status'] != ReduceStatus.finished:
         pass
 
