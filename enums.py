@@ -30,10 +30,7 @@ class MapStatus:
     map_script_loading_error = 505
     exec_map_error = 510
     save_partitions_err = 520
-    already_exists = 501  # task already exists
-
-
-
+    already_executed = 501  # task already exists
 
     finished = 600
 
@@ -44,3 +41,12 @@ class TaskStatus:
     mapping_done = 220
     reducing = 230
     task_done = 240
+
+
+class ReduceStatus:
+    accepted = 201  # task has been started
+
+    finished = 600
+
+
+

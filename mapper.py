@@ -57,7 +57,7 @@ class Mapper:
 
         if task_id in self.tasks and chunk_path in self.tasks[task_id] and not restart_task:
             self.log(task_id, "Task with the same id is already exists.")
-            return {'status': MapStatus.already_exists}
+            return {'status': MapStatus.already_executed}
 
         if task_id not in self.tasks:
             self.tasks[task_id] = {}
