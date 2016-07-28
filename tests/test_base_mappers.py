@@ -1,5 +1,6 @@
 import unittest
 from map_libs.word_count import Mapper
+import map_libs.max_year_temp
 
 
 class TestMappers(unittest.TestCase):
@@ -38,6 +39,24 @@ class TestMappers(unittest.TestCase):
         exp = [("aa", 1), ("cc", 1), ("aa", 1), ("bb", 1)]
 
         self.assertListEqual(exp, r)
+
+    def test_max_temp(self):
+        m = map_libs.max_year_temp.Mapper()
+
+        data = "(201504, 31.2), (201503, 42)"
+
+        r = m.run_map(data)
+        exp = [(2015, 31.2), (2015, 42)]
+        self.assertListEqual(exp, r)
+
+    def test_max_temp_reducer(self):
+        m = map_libs.max_year_temp.Reducer()
+
+        data = [(2015, 31.2), (2015, 41), (2016, 11)]
+        r = m.run_reduce(data)
+        exp = [(2015, 41), (2016, 11)]
+        self.assertListEqual(exp, r)
+
 
 if __name__ == '__main__':
     unittest.main()

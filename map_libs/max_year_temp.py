@@ -1,4 +1,7 @@
-import re
+import ast
+
+# this task count maximum year temp
+# it requires input as "(201604, 32.5),
 
 class Mapper:
     def __init__(self):
@@ -12,12 +15,11 @@ class Mapper:
     def map(self, data):
         if data is None:
             return
+        tuples = ast.literal_eval(data)
 
-        for word in re.compile(r'\w+').findall(data):
-            word = word.strip(',.')
-            # exclude empty strings from keys
-            if len(word) > 0:
-                self.emit(word, 1)
+        for t in tuples:
+            year = int(str(t[0])[:4])
+            self.emit(year, t[1])
 
     def emit(self, key, value):
         self.tuples.append((key, value))
@@ -59,7 +61,7 @@ class Reducer:
         return result
 
     def reduce(self, key, values):
-        s = sum(x for x in values)
+        s = max(x for x in values)
         self.emit(key, s)
 
     def emit(self, key, value):
