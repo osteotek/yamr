@@ -10,8 +10,6 @@ from xmlrpc.client import ServerProxy
 
 from fake_fs import FakeFS
 from enums import MapStatus, Status
-BASE_DIR = "/etc/yamr/"
-
 
 # unique map task for one chunk
 class MapTask:
@@ -34,7 +32,7 @@ class Mapper:
         self.my_addr = my_addr
         self.opts = opts
         self.fs = fs  # client to dfs
-        self.work_dir = BASE_DIR + name
+        self.work_dir = opts["base_dir"] + name
         self.tasks = {}
         self.hasher = HashPartitioner()
         self.job_tracker = ServerProxy(opts["jt_addr"])

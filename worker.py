@@ -2,11 +2,13 @@
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.client import ServerProxy
 from mapper import Mapper
+from reducer import Reducer, RPCMapperClient
 import sys
 import _thread
 import time
 import cfg
 import fake_fs
+import yadfs.client.client
 
 
 class Worker:
@@ -17,6 +19,7 @@ class Worker:
         self.hb_timeout = 0.5  # heartbeat timeout in seconds
         self.on = True
         self.mapper = Mapper(opts, fs, "map" + name, addr)
+        self.reducer = Reducer(fs, "reduce" + name, addr, opts, RPCMapperClient())
 
     def start(self):
         print('Init worker')
@@ -61,7 +64,7 @@ if __name__ == '__main__':
     cfg_path = sys.argv[2]
     opts = cfg.load(cfg_path)
 
-    fs = fake_fs.FakeFS()
+    fs = yadfs.client.client.Client()
     worker = Worker(fake_fs, str(port), addr, opts)
     worker.start()
 
