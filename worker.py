@@ -4,6 +4,7 @@ from xmlrpc.client import ServerProxy
 from mapper import Mapper
 from reducer import Reducer, RPCMapperClient
 import sys
+import socket
 import _thread
 import time
 import cfg
@@ -66,17 +67,21 @@ class Worker:
         return self.reducer.reduce(task_id, region, mappers, script_path)
 
 if __name__ == '__main__':
-    port = int(sys.argv[1])
-    addr = "http://localhost:" + str(port)
+    # port = int(sys.argv[1])
+    # addr = "http://localhost:" + str(port)
 
-    cfg_path = sys.argv[2]
+    cfg_path = sys.argv[1]
     opts = cfg.load(cfg_path)
+
+    host = socket.gethostbyname(socket.gethostname())
+    port = 8888
+    addr = 'http://' + host + ":" + str(port)
 
     fs = yadfs.client.client.Client()
     worker = Worker(fs, str(port), addr, opts)
     worker.start()
 
-    server = SimpleXMLRPCServer(("localhost", port))
+    server = SimpleXMLRPCServer((host, port))
     server.register_introspection_functions()
     server.register_instance(worker)
     server.serve_forever()
