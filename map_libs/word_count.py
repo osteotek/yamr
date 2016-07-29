@@ -14,7 +14,7 @@ class Mapper:
             return
 
         for word in re.compile(r'\w+').findall(data):
-            word = word.strip(',.')
+            word = word.strip(',.').lower()
             # exclude empty strings from keys
             if len(word) > 0:
                 self.emit(word, 1)

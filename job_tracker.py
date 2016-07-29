@@ -114,7 +114,7 @@ class JobTracker:
                         task = self.tasks[self.current_task]
                         task.reset_chunk_from_worker(w_name)
 
-            time.sleep(1)
+            time.sleep(self.worker_timeout)
 
     def create_task(self, input, script):
         input_info = self.dfs.path_status(input)
@@ -199,10 +199,11 @@ class JobTracker:
         while status != TaskStatus.task_done:
             for region, worker_addr in self.regions.copy().items():
                 if worker_addr in self.free_workers:
+                    self.free_workers.remove(worker_addr)
                     self.workers_tasks[worker_addr] = "reduce"
                     worker = ServerProxy(worker_addr)
                     worker.reduce(task_id, region, task.mappers(), task.script)
-                time.sleep(0.5)
+                time.sleep(0.1)
 
             status = task.status
 
@@ -219,6 +220,9 @@ class JobTracker:
             task = self.tasks[task_id]
 
             self.regions.pop(region)
+            print(self.regions)
+
+            self.free_workers.append(addr)
 
             reduce_done = len(self.regions) == 0
 

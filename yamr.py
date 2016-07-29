@@ -37,6 +37,9 @@ class Client:
     def get_file(self, path):
         return self.fs.get_file_content(path)
 
+    def list_dir(self, path):
+        return self.fs.list_dir(path)
+
 
 # CLI
 @click.group(invoke_without_command=False)
@@ -66,26 +69,42 @@ def start_task(path, script):
 
     result = []
     for part in data:
-        result.extend(json.loads(part[1]))
+        if part[1] is not None:
+            result.extend(json.loads(part[1]))
+        else:
+            print(part)
 
     for t in result:
         print(str(t[0]) + ": " + str(t[1]))
 
 
 @cli.command()
-@click.argument('local_path')
-@click.argument('remote_path', default="/")
-def upload(local_path, remote_path):
-    """Create a file"""
+@click.argument('task_id')
+def task_result(task_id):
+    """Show result of a task"""
     cl = Client()
 
-    if os.path.isdir(local_path):
-        print("You can't upload directory as a file")
-    else:
-        res = cl.upload(local_path, remote_path)
-        stat = res['status']
-        if stat != yadfs.utils.enums.Status.ok:
-            print(yadfs.utils.enums.Status.description(stat))
+    path = "/" + task_id + "/result/"
+
+    paths = cl.list_dir(path)
+
+    data = []
+
+    for _, item in paths['items'].items():
+        path = item['path']
+        print(path)
+        data.append(cl.get_file(path))
+
+    result = []
+    for part in data:
+        if part[1] is not None:
+            result.extend(json.loads(part[1]))
+        else:
+            print(part)
+
+    for t in result:
+        print(str(t[0]) + ": " + str(t[1]))
+
 
 if __name__ == '__main__':
     cli()
