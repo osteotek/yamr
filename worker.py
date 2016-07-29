@@ -16,7 +16,7 @@ class Worker:
         self.addr = addr
         self.jt_addr = opts["jt_addr"]
         self.jt = ServerProxy(self.jt_addr)
-        self.hb_timeout = 0.5  # heartbeat timeout in seconds
+        self.hb_timeout = 0.2  # heartbeat timeout in seconds
         self.on = True
         self.mapper = Mapper(opts, fs, "map" + name, addr)
         self.reducer = Reducer(fs, "reduce" + name, addr, opts, RPCMapperClient())
