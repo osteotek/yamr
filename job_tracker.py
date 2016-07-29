@@ -10,6 +10,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.client import ServerProxy
 
 from os.path import dirname
+import socket
 
 sys.path.append(dirname(dirname(__file__)))
 from yadfs.client.client import Client
@@ -253,13 +254,15 @@ class JobTracker:
 
 # args: host and port: localhost 11111
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        host = sys.argv[1]
-        port = int(sys.argv[2])
-    else:
-        host = 'localhost'
-        port = 11111
-
+    # if len(sys.argv) == 3:
+    #     host = sys.argv[1]
+    #     port = int(sys.argv[2])
+    # else:
+    #     host = 'localhost'
+    #     port = 11111
+    
+    host = socket.gethostbyname(socket.gethostname())
+    port = 11111
     jt = JobTracker(dump_on=True)
     jt.start()
 

@@ -3,15 +3,15 @@ version: '2'
 services:
     ns:
         build:
-            context: .
-            dockerfile: yadfs/ns/Dockerfile
+            context: yadfs
+            dockerfile: ns/Dockerfile
         image: yadfs:ns
         tty: true
         stdin_open: true
     cs:
         build:
-            context: .
-            dockerfile: yadfs/cs/Dockerfile
+            context: yadfs
+            dockerfile: cs/Dockerfile
         image: yadfs:cs
         tty: true
         stdin_open: true
@@ -21,21 +21,6 @@ services:
             - ns
         links:
             - ns
-    dfs_client:
-        build:
-            context: .
-            dockerfile: yadfs/Dockerfile
-        image: yadfs:client
-        tty: true
-        stdin_open: true
-        environment:
-            YAD_NS: http://ns:8888
-        depends_on:
-            - ns
-            - cs
-        links:
-            - ns
-            - cs
     jt:
         build:
             context: .
@@ -43,8 +28,11 @@ services:
         image: yamr:jt
         tty: true
         stdin_open: true
+        environment:
+            YAD_NS: http://ns:8888
         depends_on:
             - ns
+            - cs
         links:
             - ns
             - cs
@@ -59,6 +47,8 @@ services:
             YAD_NS: http://ns:8888
         depends_on:
             - jt
+            - ns
+            - cs
         links:
             - jt
             - ns
@@ -72,6 +62,7 @@ services:
         stdin_open: true
         environment:
             YAD_NS: http://ns:8888
+            YAMR_JT: http://jt:11111
         depends_on:
             - jt
             - ns
